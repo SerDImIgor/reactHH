@@ -1,18 +1,20 @@
-import {useState,useEffect} from 'react'
+import {useState, useEffect,useRef} from 'react'
 
 export type FormGenerationProps = {
-    stateFlagImg: {url: string,name: string,id:number }[]
+    choiceList: {url: string,name: string,id:number }[]
 } 
-let stopTimer:boolean = false;
+
+
 export const FormGeneration = (prop : FormGenerationProps) => {
     const [errorMessage,setErrorMessage] = useState('');
-    const [urlPathLogin, setUrlPathLogin] = useState({url:'', login:''} as {url: string,login: string});
+    const [urlPathLogin, setUrlPathLogin] = useState<{url: string,login: string}>({url:'', login:''});
     const [progresState,setProgressState] = useState(0);
     const [hideIcon,setHideIcon] = useState(true);
-    
+    const stopTimerRef = useRef(false);
+
     useEffect(() => {
-        stopTimer = true
-    },[prop.stateFlagImg]);
+        stopTimerRef.current = true;
+    },[prop.choiceList]);
 
     const generateReviewer = (lstReviewer: {url: string,name: string,id:number }[]) => {
         let isGetFirstReviewer:boolean = false;
@@ -27,7 +29,7 @@ export const FormGeneration = (prop : FormGenerationProps) => {
                     }
                     return newValue;
                 })
-                if(stopTimer)
+                if(stopTimerRef.current)
                 {
                     setHideIcon(true);
                     setProgressState(0);
@@ -73,7 +75,7 @@ export const FormGeneration = (prop : FormGenerationProps) => {
                         if(lstReviewer.length>0) {
                             setErrorMessage('');
                             setProgressState(0);
-                            stopTimer = false;
+                            stopTimerRef.current = false;
                             generateReviewer(lstReviewer)
                         } else{
                             setErrorMessage(`Can't load list reviewers`);

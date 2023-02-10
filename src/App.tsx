@@ -6,27 +6,26 @@ import {useState} from 'react'
 
 function App() {
   
-  const [dataForm,setFormData] = useState([] as {url: string,name: string,id:number }[]);
-  const renderData = () =>
+  const [submitData,setSubmitData] = useState([] as {url: string,name: string,id:number }[]);
+  const onSubmit = () =>
   {
-    console.log('renderData')
     const reviewer = localStorage.getItem("listWithoutBlack");
     if (reviewer) {
       let lstReviewer = JSON.parse(reviewer) as {url: string,name: string,id:number }[]
-      setFormData(lstReviewer);
+      setSubmitData(lstReviewer);
     }
     else{
-      setFormData([]);
+      setSubmitData([]);
     }
   }
   return (
     <div className="App">
       <div className='row'>
           <div className='column'>
-            < FormSettings renderData={renderData} /> 
+            < FormSettings onSubmit={onSubmit} /> 
           </div>
           <div className='column'>
-            <FormGeneration stateFlagImg={dataForm} />
+            <FormGeneration choiceList={submitData} />
           </div>
       </div>
     </div>

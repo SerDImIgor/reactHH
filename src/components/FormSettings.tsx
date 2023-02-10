@@ -1,8 +1,7 @@
-import React from 'react'
-import {useState} from 'react'
-
+import React,{useState,useEffect} from 'react'
+import {loadData,ErrorNet} from '../data/loadData'
 export type FormGenerationProps = {
-  renderData: () => void;
+  onSubmit: () => void;
 } 
 
 type JsonData = {
@@ -13,17 +12,17 @@ type JsonData = {
 
 export const FormSettings = (props:FormGenerationProps) => {
 
-  const [UrlNameArray,setData] = useState([] as JsonData [])
-  const [errorMessage,setErrorMessage] = useState('')
+  const [UrlNameArray,setData] = useState<JsonData []>([])
+  const [errorMessage,setErrorMessage] = useState<string|null>(null)
   const [isLoading,setIsLoading] = useState(false)
-  const [loadFromStorageFlag,setIsLoadFromStorageFlag] = useState(false)
   
   const [login,setLogin] = useState('')
   const [repo,setRepo] = useState('')
-  const [blacklist,setBlackList] = useState([] as string[])
+  const [blacklist,setBlackList] = useState<string[]>([])
   const [hideSettings,sethideSettings] = useState(false);
 
-  const loadFromStorage = () => {
+
+  useEffect(() => {
     const logUrl = localStorage.getItem("LogUrl");
     if (logUrl) {
       const dtLocalStorage = JSON.parse(logUrl) as {login: string,repo:string ,data: JsonData[]}
@@ -36,13 +35,8 @@ export const FormSettings = (props:FormGenerationProps) => {
     if (value) {
       const tmpList = JSON.parse(value);
       setBlackList(tmpList);
-    }  
-    setIsLoadFromStorageFlag(true);
-  }
-
-  if (!loadFromStorageFlag) {
-    loadFromStorage();
-  }
+    }
+  },[]);
 
   const handleChange = (e: React.BaseSyntheticEvent ) => {
     let options = e.target.options;
@@ -63,57 +57,48 @@ export const FormSettings = (props:FormGenerationProps) => {
       }
     })
     localStorage.setItem('listWithoutBlack',JSON.stringify(arrayUrl));
-    props.renderData();
+    props.onSubmit();
+  }
+  const updateListReviewer = (result: {name: string, url: string,id: number} [] )=> {
+    localStorage.setItem("LogUrl",JSON.stringify({login: login,repo: repo,data:result}));
+    localStorage.removeItem("blackList");
+    localStorage.setItem('listWithoutBlack',JSON.stringify(result));
+    setBlackList([]);
   }
 
-  const loadData = async (url:string) =>
-  {
-      const res = await fetch(url);
-      if (!res.ok) {
-          throw Error('Could not featch the data for that resource');
-      }
-      const data = await res.json();
-      const valLst = data.map((u:any) => {
-        return {name:u.login as string, url:  u.avatar_url as string,id: u.id as number};
-      })
-      return valLst
-  } 
-
-  const hanleSubmit =  async (e : React.SyntheticEvent) =>{
+  const hanleSubmit = async(e : React.SyntheticEvent) =>{
     e.preventDefault();
     setIsLoading(true);
     try {
-      const result = await loadData(`https://api.github.com/repos/${login}/${repo}/contributors`);
+      const data = await loadData(`https://api.github.com/repos/${login}/${repo}/contributors`);
+      const result = data.map((u:any) => {
+        return {name:u.login as string, url:  u.avatar_url as string,id: u.id as number};
+      })
       const logUrl = localStorage.getItem("LogUrl");
       if (logUrl) {
         const dtLocalStorage = JSON.parse(logUrl) as {login: string,repo:string ,data: JsonData[]}
         if ( dtLocalStorage.login !== login || dtLocalStorage.repo !== repo) {
-          localStorage.setItem("LogUrl",JSON.stringify({login: login,repo: repo,data:result}));
-          localStorage.removeItem("blackList");
-          localStorage.setItem('listWithoutBlack',JSON.stringify(result));
-          setBlackList([]);
-          
+          updateListReviewer(result)          
         }
       } else {
-        localStorage.setItem("LogUrl",JSON.stringify({login: login,repo: repo,data:result}));
-        localStorage.removeItem("blackList");
-        localStorage.setItem('listWithoutBlack',JSON.stringify(result));
-        setBlackList([]);
+        updateListReviewer(result)
       }
       setData(result);
       setErrorMessage('');
-      props.renderData();
     } catch(err : unknown) {
-        if (err instanceof Error) {
+        if (err instanceof ErrorNet) {
           setErrorMessage(`It seems that you do not have an internet connection or the server is not available ${err.message}`);
-          setData([] as JsonData[]);
-          localStorage.removeItem("blackList");
-          localStorage.removeItem("listWithoutBlack");
-          localStorage.removeItem("LogUrl");
-          props.renderData();
+        }  else{
+          setErrorMessage(`Something happened with json data from local storage ${(err as Error).message }`); 
         }
+        setData([] as JsonData[]);
+        localStorage.removeItem("blackList");
+        localStorage.removeItem("listWithoutBlack");
+        localStorage.removeItem("LogUrl");
+    } finally{
+      props.onSubmit();
+      setIsLoading(false);  
     }
-    setIsLoading(false);
   }
   
 return (
@@ -145,7 +130,7 @@ return (
           </select>
           {!isLoading &&<button>Load data</button>}
           {isLoading &&<button disabled>Loading data ...</button>}
-          {errorMessage.length>0 && <p>{errorMessage}</p>}
+          {errorMessage && <p>{errorMessage}</p>}
       </form>
     </div>}
   </div>
