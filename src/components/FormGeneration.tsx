@@ -1,22 +1,33 @@
 import {useState, useEffect,useRef} from 'react'
+import {useSelector} from 'react-redux'
+import {githubUser} from '../users/userTypes'
+import {RootState } from '../redux/store'
 
-export type FormGenerationProps = {
-    choiceList: {url: string,name: string,id:number }[]
-} 
-
-
-export const FormGeneration = (prop : FormGenerationProps) => {
+export const FormGeneration = () => {
     const [errorMessage,setErrorMessage] = useState('');
+    const [whiteList,setWhiteList] = useState<githubUser[]>([]);
     const [urlPathLogin, setUrlPathLogin] = useState<{url: string,login: string}>({url:'', login:''});
     const [progresState,setProgressState] = useState(0);
     const [hideIcon,setHideIcon] = useState(true);
     const stopTimerRef = useRef(false);
 
+    const UrlNameArray = useSelector((state:RootState) => state.user.users) 
+    const blacklist = useSelector((state:RootState) => state.user.black_list) 
+   
     useEffect(() => {
-        stopTimerRef.current = true;
-    },[prop.choiceList]);
-
-    const generateReviewer = (lstReviewer: {url: string,name: string,id:number }[]) => {
+        if(UrlNameArray!==undefined)
+        {
+            const arrayUrl:githubUser[] = [];
+            UrlNameArray.forEach((x) => { 
+                if (!blacklist.includes(x.id.toString())) {
+                    arrayUrl.push(x);
+                }
+            })
+            setWhiteList(arrayUrl);
+        }
+    stopTimerRef.current = true;
+    },[UrlNameArray,blacklist]);
+    const generateReviewer = (lstReviewer: githubUser[]) => {
         let isGetFirstReviewer:boolean = false;
         const timer = setInterval(() => {
             if (progresState < 100) {
@@ -29,20 +40,17 @@ export const FormGeneration = (prop : FormGenerationProps) => {
                     }
                     return newValue;
                 })
-                if(stopTimerRef.current)
-                {
+                if(stopTimerRef.current) {
                     setHideIcon(true);
                     setProgressState(0);
                     clearInterval(timer)
                     return;
                 }
                 const el = lstReviewer[randomIndex];
-                if(el.url.length>0 && el.name.length>0) {
-                    
-                    setUrlPathLogin({url:el.url,login: el.name});
-                    if(isGetFirstReviewer)
-                    {
-                    setHideIcon(false);
+                if(el.avatar_url.length>0 && el.login.length>0) {
+                    setUrlPathLogin({url:el.avatar_url,login: el.login});
+                    if(isGetFirstReviewer) {
+                        setHideIcon(false);
                     }
                     isGetFirstReviewer = true;
                 }
@@ -68,21 +76,11 @@ export const FormGeneration = (prop : FormGenerationProps) => {
                 }
             </div>
             <div className="button-container">
-                {progresState===0  && <button onClick={()=>{
-                    const reviewer = localStorage.getItem("listWithoutBlack");
-                    if (reviewer) {
-                        let lstReviewer = JSON.parse(reviewer) as {url: string,name: string,id:number }[]
-                        if(lstReviewer.length>0) {
-                            setErrorMessage('');
-                            setProgressState(0);
-                            stopTimerRef.current = false;
-                            generateReviewer(lstReviewer)
-                        } else{
-                            setErrorMessage(`Can't load list reviewers`);
-                        }
-                    } else{
-                        setErrorMessage(`Can't load list reviewers`);
-                    }
+                {whiteList && progresState ===0 && <button onClick={()=>{       
+                    setErrorMessage('');
+                    setProgressState(0);
+                    stopTimerRef.current = false;
+                    generateReviewer(whiteList);
                     }}>Generate reviewer</button>
                 }
                 {progresState > 0 && <button disabled>Searching...</button>}
