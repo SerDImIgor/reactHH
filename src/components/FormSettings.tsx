@@ -1,9 +1,11 @@
 import React,{useState,useEffect} from 'react'
-import {useSelector,useDispatch} from 'react-redux'
+import {TypedUseSelectorHook,useSelector,useDispatch} from 'react-redux'
 import {githubUser} from '../users/userTypes'
 import {fetchUsers} from '../users/userAction'
 import {fetchUserFromGithub} from '../users/userAction'
 import {RootState } from '../redux/store'
+import {userDispatchType} from '../users/userAction'
+import { Dispatch} from "redux"
 import {
   SET_LIST_CONTRIBUTOR,
   SET_BLACK_LIST,
@@ -13,16 +15,21 @@ import {
 
 export const FormSettings = () => {
 
-  const UrlNameArray = useSelector((state: RootState) => state.user.users) 
-  const errorMessage = useSelector((state: RootState) => state.user.error)
-  const isLoading = useSelector((state: RootState) => state.user.loading)
+  const useAppSelector : TypedUseSelectorHook<RootState> = useSelector;
+  const UrlNameArray = useAppSelector(state => state.user.users); 
+  const errorMessage = useAppSelector(state => state.user.error);
+  const isLoading = useAppSelector(state => state.user.loading);
+  const blacklist = useAppSelector(state => state.user.black_list);
   
-  const [login,setLogin] = useState('')
-  const [repo,setRepo] = useState('')
-  const blacklist = useSelector((state: RootState) => state.user.black_list) 
+
+  const [login,setLogin] = useState('');
+  const [repo,setRepo] = useState('');
+  
   const [hideSettings,sethideSettings] = useState(false);
 
-  const dispatch = useDispatch();
+  const useAppDispatch : () => Dispatch<userDispatchType> = useDispatch;
+  const dispatch = useAppDispatch();
+  
   const dispatchFetch = useDispatch() as (fn:fetchUserFromGithub) => Promise<githubUser[]> 
   
   useEffect(() => {
@@ -70,15 +77,15 @@ export const FormSettings = () => {
         tmpList.push(options[i].value);
       }
     }
-    const blacklst = tmpList.map((x:string) => x)
+    const blacklist = tmpList.map((x:string) => x)
     dispatch({
       type: SET_BLACK_LIST,
       payload : tmpList
     });
-    localStorage.setItem('blackList',JSON.stringify(blacklst));
+    localStorage.setItem('blackList',JSON.stringify(blacklist));
   }
   
-  const hanleSubmit = async(e : React.SyntheticEvent) =>{
+  const handleSubmit = async(e : React.SyntheticEvent) =>{
     e.preventDefault();
     dispatchFetch(fetchUsers(login,repo)).then((dt:githubUser[])=>{
       if(dt.length>0) {
@@ -95,7 +102,7 @@ return (
     {hideSettings && <button onClick={()=>{sethideSettings(false)}}>Hide Settings</button>}
     {hideSettings &&<div>
       <h2>Settings</h2>
-      <form onSubmit={hanleSubmit}>
+      <form onSubmit={handleSubmit}>
           <label>Enter login:</label>
           <input className="input-element" type="text" 
             required 

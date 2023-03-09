@@ -23,7 +23,7 @@ function App() {
 }
 
 export default App;
-//https://www.youtube.com/watch?v=Lkng78QNWJA
+
 
 //let owner = 'twbs';
 //let repo = 'bootstrap';

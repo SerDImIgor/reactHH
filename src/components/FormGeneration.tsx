@@ -1,8 +1,9 @@
 import {useState, useEffect,useRef} from 'react'
-import {useSelector} from 'react-redux'
+import {TypedUseSelectorHook,useSelector} from 'react-redux'
 import {githubUser} from '../users/userTypes'
 import {RootState } from '../redux/store'
-
+const progressSize = 100;
+const progressStep = 10;
 export const FormGeneration = () => {
     const [errorMessage,setErrorMessage] = useState('');
     const [whiteList,setWhiteList] = useState<githubUser[]>([]);
@@ -11,30 +12,24 @@ export const FormGeneration = () => {
     const [hideIcon,setHideIcon] = useState(true);
     const stopTimerRef = useRef(false);
 
-    const UrlNameArray = useSelector((state:RootState) => state.user.users) 
-    const blacklist = useSelector((state:RootState) => state.user.black_list) 
+    const useAppSelector : TypedUseSelectorHook<RootState> = useSelector;
+    const UrlNameArray = useAppSelector(state => state.user.users) 
+    const blacklist = useAppSelector(state => state.user.black_list) 
    
     useEffect(() => {
-        if(UrlNameArray!==undefined)
-        {
-            const arrayUrl:githubUser[] = [];
-            UrlNameArray.forEach((x) => { 
-                if (!blacklist.includes(x.id.toString())) {
-                    arrayUrl.push(x);
-                }
-            })
-            setWhiteList(arrayUrl);
+        if(UrlNameArray!==undefined) {
+            setWhiteList(UrlNameArray.filter(x=> !blacklist.includes(x.id.toString())));
         }
     stopTimerRef.current = true;
     },[UrlNameArray,blacklist]);
     const generateReviewer = (lstReviewer: githubUser[]) => {
         let isGetFirstReviewer:boolean = false;
         const timer = setInterval(() => {
-            if (progresState < 100) {
+            if (progresState < progressSize) {
                 const randomIndex = Math.floor((Math.random() * lstReviewer.length));
                 setProgressState( (oldValue) => {
-                    let newValue = oldValue + 10;
-                    if (newValue>=100){
+                    let newValue = oldValue + progressStep;
+                    if (newValue >= progressSize){
                         clearInterval(timer)
                         return 0;
                     }
@@ -76,7 +71,7 @@ export const FormGeneration = () => {
                 }
             </div>
             <div className="button-container">
-                {whiteList && progresState ===0 && <button onClick={()=>{       
+                {whiteList && progresState === 0 && <button onClick={()=>{       
                     setErrorMessage('');
                     setProgressState(0);
                     stopTimerRef.current = false;
